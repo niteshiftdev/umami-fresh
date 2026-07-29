@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+pnpm install
+docker rm -f umami-db >/dev/null 2>&1 || true
+docker run -d --name umami-db \
+  -e POSTGRES_DB=umami \
+  -e POSTGRES_USER=umami \
+  -e POSTGRES_PASSWORD=umami \
+  -p 5432:5432 \
+  postgres:15-alpine
+until docker exec umami-db pg_isready -U umami -d umami; do sleep 1; done
+if [ ! -f .env ]; then
+  printf 'DATABASE_URL=%s\nAPP_SECRET=%s\n' \
+    'postgresql://umami:umami@localhost:5432/umami' \
+    'dev-secret-for-niteshift-local' > .env
+fi
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy
