@@ -35,10 +35,10 @@ export function LoginForm() {
       <Icon size="lg">
         <Logo />
       </Icon>
-      <Heading>umami</Heading>
+      <Heading>✨ umami ✨</Heading>
       <Form onSubmit={handleSubmit} error={getErrorMessage(error)} style={{ minWidth: 300 }}>
         <FormField
-          label={t(labels.username)}
+          label={`👤 ${t(labels.username)}`}
           data-test="input-username"
           name="username"
           rules={{ required: t(labels.required) }}
@@ -47,7 +47,7 @@ export function LoginForm() {
         </FormField>
 
         <FormField
-          label={t(labels.password)}
+          label={`🔒 ${t(labels.password)}`}
           data-test="input-password"
           name="password"
           rules={{ required: t(labels.required) }}
@@ -61,7 +61,7 @@ export function LoginForm() {
             style={{ flex: 1 }}
             isDisabled={false}
           >
-            {t(labels.login)}
+            🚀 {t(labels.login)}
           </FormSubmitButton>
         </FormButtons>
       </Form>
