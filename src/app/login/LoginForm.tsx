@@ -1,10 +1,8 @@
 import {
-  Column,
   Form,
   FormButtons,
   FormField,
   FormSubmitButton,
-  Heading,
   Icon,
   PasswordField,
   TextField,
@@ -14,6 +12,7 @@ import { useMessages, useUpdateQuery } from '@/components/hooks';
 import { Logo } from '@/components/svg';
 import { setClientAuthToken } from '@/lib/client';
 import { setUser } from '@/store/app';
+import styles from './LoginPage.module.css';
 
 export function LoginForm() {
   const { t, labels, getErrorMessage } = useMessages();
@@ -31,12 +30,21 @@ export function LoginForm() {
   };
 
   return (
-    <Column justifyContent="center" alignItems="center" gap="6">
-      <Icon size="lg">
-        <Logo />
-      </Icon>
-      <Heading>umami</Heading>
-      <Form onSubmit={handleSubmit} error={getErrorMessage(error)} style={{ minWidth: 300 }}>
+    <div className={styles.panel}>
+      <div className={styles.brand}>
+        <div className={styles.logoWrap}>
+          <Icon size="lg">
+            <Logo />
+          </Icon>
+        </div>
+        <h1 className={styles.title}>umami</h1>
+      </div>
+      <Form
+        onSubmit={handleSubmit}
+        error={getErrorMessage(error)}
+        className={styles.form}
+        style={{ minWidth: 280 }}
+      >
         <FormField
           label={t(labels.username)}
           data-test="input-username"
@@ -58,13 +66,13 @@ export function LoginForm() {
           <FormSubmitButton
             data-test="button-submit"
             variant="primary"
-            style={{ flex: 1 }}
+            className={styles.submit}
             isDisabled={false}
           >
             {t(labels.login)}
           </FormSubmitButton>
         </FormButtons>
       </Form>
-    </Column>
+    </div>
   );
 }
