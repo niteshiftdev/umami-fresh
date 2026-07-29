@@ -1,0 +1,96 @@
+.page {
+  --rainbow: linear-gradient(
+    120deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55,
+    #ff3b30
+  );
+  --rainbow-soft: linear-gradient(
+    135deg,
+    rgba(255, 59, 48, 0.35),
+    rgba(255, 149, 0, 0.3),
+    rgba(255, 204, 0, 0.28),
+    rgba(52, 199, 89, 0.3),
+    rgba(90, 200, 250, 0.32),
+    rgba(0, 122, 255, 0.3),
+    rgba(175, 82, 222, 0.35),
+    rgba(255, 45, 85, 0.3)
+  );
+
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100vh;
+  height: 100vh;
+  padding-top: 15vh;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255, 59, 48, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 30%, rgba(0, 122, 255, 0.2), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 90%, rgba(175, 82, 222, 0.18), transparent 55%),
+    linear-gradient(160deg, #1a1025 0%, #0f1a2e 45%, #10201c 100%);
+}
+
+.page::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: var(--rainbow-soft);
+  background-size: 300% 300%;
+  opacity: 0.55;
+  animation: rainbowDrift 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--rainbow);
+  background-size: 200% 100%;
+  animation: rainbowSlide 6s linear infinite;
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rainbowDrift {
+  0%,
+  100% {
+    background-position: 0% 40%;
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    background-position: 100% 60%;
+    transform: rotate(8deg) scale(1.05);
+  }
+}
+
+@keyframes rainbowSlide {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page::before,
+  .page::after {
+    animation: none;
+  }
+}

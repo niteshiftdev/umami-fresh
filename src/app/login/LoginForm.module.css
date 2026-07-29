@@ -1,0 +1,122 @@
+.form {
+  --rainbow: linear-gradient(
+    90deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55
+  );
+
+  position: relative;
+  padding: 2rem 2.25rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  animation: formRise 0.7s ease-out both;
+}
+
+.form::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--rainbow);
+  background-size: 200% 100%;
+  animation: rainbowBorder 5s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.brand {
+  background: var(--rainbow);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rainbowText 5s linear infinite;
+}
+
+.logo {
+  animation: logoPulse 3.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 149, 0, 0.35));
+}
+
+.submit {
+  background: var(--rainbow) !important;
+  background-size: 200% 100% !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  animation: rainbowBorder 4s linear infinite;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.submit:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+@keyframes formRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rainbowBorder {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes rainbowText {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(255, 149, 0, 0.3));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 16px rgba(90, 200, 250, 0.45));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form,
+  .form::before,
+  .brand,
+  .logo,
+  .submit {
+    animation: none;
+  }
+}
