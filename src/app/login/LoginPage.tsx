@@ -1,9 +1,10 @@
 'use client';
-import { Column, Loading } from '@umami/react-zen';
+import { Loading } from '@umami/react-zen';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLoginQuery } from '@/components/hooks';
 import { LoginForm } from './LoginForm';
+import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const { user, isLoading } = useLoginQuery();
@@ -20,14 +21,12 @@ export function LoginPage() {
   }
 
   return (
-    <Column
-      alignItems="center"
-      justifyContent="flex-start"
-      height="100vh"
-      backgroundColor="surface-raised"
-      style={{ paddingTop: '15vh' }}
-    >
-      <LoginForm />
-    </Column>
+    <main className={styles.page}>
+      <div className={`${styles.glow} ${styles.glowTop}`} aria-hidden="true" />
+      <div className={`${styles.glow} ${styles.glowBottom}`} aria-hidden="true" />
+      <section className={styles.card}>
+        <LoginForm />
+      </section>
+    </main>
   );
 }
