@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLoginQuery } from '@/components/hooks';
 import { LoginForm } from './LoginForm';
+import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const { user, isLoading } = useLoginQuery();
@@ -20,14 +21,17 @@ export function LoginPage() {
   }
 
   return (
-    <Column
-      alignItems="center"
-      justifyContent="flex-start"
-      height="100vh"
-      backgroundColor="surface-raised"
-      style={{ paddingTop: '15vh' }}
-    >
-      <LoginForm />
-    </Column>
+    <div className={styles.rainbowContainer}>
+      <div className={styles.rainbowContent}>
+        <Column
+          alignItems="center"
+          justifyContent="flex-start"
+          height="100vh"
+          style={{ paddingTop: '15vh' }}
+        >
+          <LoginForm />
+        </Column>
+      </div>
+    </div>
   );
 }
