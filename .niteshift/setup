@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+corepack pnpm install --frozen-lockfile
+corepack pnpm exec prisma generate
+corepack pnpm exec node scripts/build-prisma-client.js
