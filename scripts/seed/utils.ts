@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 export interface WeightedOption<T> {
   value: T;
@@ -41,36 +41,11 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 export function uuid(): string {
-  return uuidv4();
-}
-
-export function generateDatesBetween(startDate: Date, endDate: Date): Date[] {
-  const dates: Date[] = [];
-  const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
-
-  while (current <= endDate) {
-    dates.push(new Date(current));
-    current.setDate(current.getDate() + 1);
-  }
-
-  return dates;
-}
-
-export function addHours(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 60 * 60 * 1000);
-}
-
-export function addMinutes(date: Date, minutes: number): Date {
-  return new Date(date.getTime() + minutes * 60 * 1000);
+  return randomUUID();
 }
 
 export function addSeconds(date: Date, seconds: number): Date {
   return new Date(date.getTime() + seconds * 1000);
-}
-
-export function subDays(date: Date, days: number): Date {
-  return new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
 export function formatNumber(num: number): string {

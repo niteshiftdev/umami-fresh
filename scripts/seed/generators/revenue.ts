@@ -1,4 +1,4 @@
-import { randomFloat, uuid } from '../utils.js';
+import { randomFloat, uuid, type WeightedOption, weightedRandom } from '../utils.js';
 import type { EventData } from './events.js';
 
 export interface RevenueConfig {
@@ -20,15 +20,7 @@ export interface RevenueData {
   createdAt: Date;
 }
 
-export function generateRevenue(event: EventData, config: RevenueConfig): RevenueData | null {
-  if (event.eventName !== config.eventName) {
-    return null;
-  }
-
-  if (Math.random() > config.weight) {
-    return null;
-  }
-
+export function generateRevenue(event: EventData, config: RevenueConfig): RevenueData {
   const revenue = randomFloat(config.minAmount, config.maxAmount);
 
   return {
@@ -36,13 +28,17 @@ export function generateRevenue(event: EventData, config: RevenueConfig): Revenu
     websiteId: event.websiteId,
     sessionId: event.sessionId,
     eventId: event.id,
-    eventName: event.eventName!,
+    eventName: event.eventName as string,
     currency: config.currency,
-    revenue: Math.round(revenue * 100) / 100, // Round to 2 decimal places
+    revenue: Math.round(revenue * 100) / 100,
     createdAt: event.createdAt,
   };
 }
 
+/**
+ * Every revenue-bearing event gets exactly one revenue row; the configs act as a
+ * weighted mix of order sizes and currencies rather than sequential coin flips.
+ */
 export function generateRevenueForEvents(
   events: EventData[],
   configs: RevenueConfig[],
@@ -52,13 +48,16 @@ export function generateRevenueForEvents(
   for (const event of events) {
     if (!event.eventName) continue;
 
-    for (const config of configs) {
-      const revenue = generateRevenue(event, config);
-      if (revenue) {
-        revenueEntries.push(revenue);
-        break; // Only one revenue per event
-      }
-    }
+    const matching = configs.filter(config => config.eventName === event.eventName);
+
+    if (matching.length === 0) continue;
+
+    const options: WeightedOption<RevenueConfig>[] = matching.map(config => ({
+      value: config,
+      weight: config.weight,
+    }));
+
+    revenueEntries.push(generateRevenue(event, weightedRandom(options)));
   }
 
   return revenueEntries;

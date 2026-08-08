@@ -1,69 +1,178 @@
-import { randomInt, type WeightedOption, weightedRandom } from '../utils.js';
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 
-const hourlyWeights: WeightedOption<number>[] = [
-  { value: 0, weight: 0.02 },
-  { value: 1, weight: 0.01 },
-  { value: 2, weight: 0.01 },
-  { value: 3, weight: 0.01 },
-  { value: 4, weight: 0.01 },
-  { value: 5, weight: 0.02 },
-  { value: 6, weight: 0.03 },
-  { value: 7, weight: 0.05 },
-  { value: 8, weight: 0.07 },
-  { value: 9, weight: 0.08 },
-  { value: 10, weight: 0.09 },
-  { value: 11, weight: 0.08 },
-  { value: 12, weight: 0.07 },
-  { value: 13, weight: 0.08 },
-  { value: 14, weight: 0.09 },
-  { value: 15, weight: 0.08 },
-  { value: 16, weight: 0.07 },
-  { value: 17, weight: 0.06 },
-  { value: 18, weight: 0.05 },
-  { value: 19, weight: 0.04 },
-  { value: 20, weight: 0.03 },
-  { value: 21, weight: 0.03 },
-  { value: 22, weight: 0.02 },
-  { value: 23, weight: 0.02 },
+/**
+ * Share of a day's traffic that starts in each hour, summing to 1.
+ *
+ * Shallower than a single-timezone curve on purpose: the visitor mix spans the US,
+ * Europe, and Asia, so the overnight hours stay populated rather than going dark.
+ */
+export const HOURLY_WEIGHTS = [
+  0.028, 0.024, 0.021, 0.02, 0.02, 0.022, 0.026, 0.032, 0.042, 0.051, 0.058, 0.06, 0.058, 0.06,
+  0.065, 0.062, 0.058, 0.052, 0.047, 0.044, 0.042, 0.04, 0.036, 0.032,
 ];
 
-const dayOfWeekWeights: WeightedOption<number>[] = [
-  { value: 0, weight: 0.08 }, // Sunday
-  { value: 1, weight: 0.16 }, // Monday
-  { value: 2, weight: 0.17 }, // Tuesday
-  { value: 3, weight: 0.17 }, // Wednesday
-  { value: 4, weight: 0.16 }, // Thursday
-  { value: 5, weight: 0.15 }, // Friday
-  { value: 6, weight: 0.11 }, // Saturday
+const DAY_OF_WEEK_WEIGHTS = [
+  0.62, // Sunday
+  1.14, // Monday
+  1.2, // Tuesday
+  1.19, // Wednesday
+  1.13, // Thursday
+  1.03, // Friday
+  0.69, // Saturday
 ];
 
-export function getWeightedHour(): number {
-  return weightedRandom(hourlyWeights);
+/**
+ * Month-of-year demand curve: a summer lull, a strong autumn, and a holiday dip.
+ * Keeps the 6 and 12 month views from reading as a flat line.
+ */
+const MONTH_OF_YEAR_WEIGHTS = [
+  1.05, // January
+  1.02, // February
+  1.06, // March
+  1.0, // April
+  0.97, // May
+  0.9, // June
+  0.83, // July
+  0.85, // August
+  1.09, // September
+  1.14, // October
+  1.12, // November
+  0.88, // December
+];
+
+/** Compounding month-over-month growth, so a year ago is markedly quieter than today. */
+const MONTHLY_GROWTH = 1.12;
+
+/** Relative traffic on the day a campaign lands and on the three days after it. */
+const CAMPAIGN_DECAY = [2.6, 1.85, 1.4, 1.15];
+
+/** Roughly one campaign every this many days. */
+const CAMPAIGN_INTERVAL = 47;
+
+export function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
 }
 
-export function getDayOfWeekMultiplier(dayOfWeek: number): number {
-  const weight = dayOfWeekWeights.find(d => d.value === dayOfWeek)?.weight ?? 0.14;
-  return weight / 0.14; // Normalize around 1.0
+export function startOfNextDay(date: Date): Date {
+  const result = startOfDay(date);
+  result.setDate(result.getDate() + 1);
+  return result;
 }
 
-export function generateTimestampForDay(day: Date): Date {
-  const hour = getWeightedHour();
-  const minute = randomInt(0, 59);
-  const second = randomInt(0, 59);
-  const millisecond = randomInt(0, 999);
-
-  const timestamp = new Date(day);
-  timestamp.setHours(hour, minute, second, millisecond);
-
-  return timestamp;
+/** Deterministic 32-bit hash, so campaign spikes land on the same dates in every run. */
+function hashInt(value: number): number {
+  let x = value | 0;
+  x = Math.imul(x ^ (x >>> 16), 2246822507);
+  x = Math.imul(x ^ (x >>> 13), 3266489909);
+  return (x ^ (x >>> 16)) >>> 0;
 }
 
-export function getSessionCountForDay(baseCount: number, day: Date): number {
-  const dayOfWeek = day.getDay();
-  const multiplier = getDayOfWeekMultiplier(dayOfWeek);
+function campaignMultiplier(day: Date): number {
+  const dayNumber = Math.floor(startOfDay(day).getTime() / DAY);
 
-  // Add some random variance (±20%)
-  const variance = 0.8 + Math.random() * 0.4;
+  for (let offset = 0; offset < CAMPAIGN_DECAY.length; offset++) {
+    if (hashInt(dayNumber - offset) % CAMPAIGN_INTERVAL === 0) {
+      return CAMPAIGN_DECAY[offset];
+    }
+  }
 
-  return Math.round(baseCount * multiplier * variance);
+  return 1;
+}
+
+/**
+ * How busy a day is relative to a full-strength day today, combining long-term
+ * growth, weekday rhythm, annual seasonality, and campaign spikes.
+ */
+export function getTrafficMultiplier(day: Date, now: Date): number {
+  const daysAgo = Math.max(0, (startOfDay(now).getTime() - startOfDay(day).getTime()) / DAY);
+  const growth = MONTHLY_GROWTH ** (-daysAgo / 30);
+
+  return (
+    growth *
+    DAY_OF_WEEK_WEIGHTS[day.getDay()] *
+    MONTH_OF_YEAR_WEIGHTS[day.getMonth()] *
+    campaignMultiplier(day)
+  );
+}
+
+/** Share of a single day's traffic that starts inside [from, to). */
+export function windowTrafficShare(from: Date, to: Date): number {
+  if (to <= from) {
+    return 0;
+  }
+
+  const dayStart = startOfDay(from);
+  let share = 0;
+
+  for (let hour = 0; hour < 24; hour++) {
+    const hourStart = dayStart.getTime() + hour * HOUR;
+    const overlap = Math.min(to.getTime(), hourStart + HOUR) - Math.max(from.getTime(), hourStart);
+
+    if (overlap > 0) {
+      share += HOURLY_WEIGHTS[hour] * (overlap / HOUR);
+    }
+  }
+
+  return share;
+}
+
+/** A timestamp inside [from, to), distributed across the hours people actually browse. */
+export function generateTimestampInWindow(from: Date, to: Date): Date {
+  const dayStart = startOfDay(from);
+  const slots: { start: number; end: number; weight: number }[] = [];
+  let totalWeight = 0;
+
+  for (let hour = 0; hour < 24; hour++) {
+    const hourStart = dayStart.getTime() + hour * HOUR;
+    const start = Math.max(from.getTime(), hourStart);
+    const end = Math.min(to.getTime(), hourStart + HOUR);
+
+    if (end > start) {
+      const weight = HOURLY_WEIGHTS[hour] * ((end - start) / HOUR);
+      slots.push({ start, end, weight });
+      totalWeight += weight;
+    }
+  }
+
+  if (slots.length === 0) {
+    return new Date(from);
+  }
+
+  let random = Math.random() * totalWeight;
+
+  for (const slot of slots) {
+    random -= slot.weight;
+    if (random <= 0) {
+      return new Date(slot.start + Math.random() * (slot.end - slot.start));
+    }
+  }
+
+  const last = slots[slots.length - 1];
+  return new Date(last.start + Math.random() * (last.end - last.start));
+}
+
+/**
+ * Number of sessions to start inside [from, to).
+ *
+ * The fractional remainder is resolved probabilistically, so repeatedly topping up a
+ * low-traffic site in one-minute windows still adds up to the right daily total.
+ */
+export function getSessionCountForWindow(
+  sessionsPerDay: number,
+  from: Date,
+  to: Date,
+  now: Date,
+): number {
+  const expected =
+    sessionsPerDay *
+    getTrafficMultiplier(from, now) *
+    windowTrafficShare(from, to) *
+    (0.85 + Math.random() * 0.3);
+
+  const whole = Math.floor(expected);
+
+  return whole + (Math.random() < expected - whole ? 1 : 0);
 }

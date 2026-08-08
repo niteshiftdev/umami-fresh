@@ -1,11 +1,16 @@
-import { getRandomReferrer } from '../distributions/referrers.js';
+import { getRandomReferrer, type ReferrerInfo } from '../distributions/referrers.js';
+import { generateWebVitals } from '../distributions/vitals.js';
 import { addSeconds, randomInt, uuid } from '../utils.js';
 import type { SessionData } from './sessions.js';
 
 export const EVENT_TYPE = {
   pageView: 1,
   customEvent: 2,
+  performance: 5,
 } as const;
+
+/** Share of page views that also report web vitals, matching a typical RUM sample. */
+const PERFORMANCE_SAMPLE_RATE = 0.55;
 
 export interface PageConfig {
   path: string;
@@ -47,6 +52,11 @@ export interface EventData {
   fbclid: string | null;
   eventName: string | null;
   tag: string | null;
+  lcp: number | null;
+  inp: number | null;
+  cls: number | null;
+  fcp: number | null;
+  ttfb: number | null;
   createdAt: Date;
 }
 
@@ -67,6 +77,8 @@ export interface SiteConfig {
   pages: PageConfig[];
   journeys: JourneyConfig[];
   customEvents: CustomEventConfig[];
+  /** Session properties written for identified visitors. */
+  sessionProperties?: Record<string, string[] | number[]>;
 }
 
 function getPageTitle(pages: PageConfig[], path: string): string | null {
@@ -79,48 +91,131 @@ function getPageTimeOnPage(pages: PageConfig[], path: string): number {
   return page?.avgTimeOnPage ?? 30;
 }
 
+/** Campaign traffic lands with its parameters still on the URL. */
+function buildUrlQuery(referrer: ReferrerInfo): string | null {
+  const params = new URLSearchParams();
+
+  if (referrer.utmSource) params.set('utm_source', referrer.utmSource);
+  if (referrer.utmMedium) params.set('utm_medium', referrer.utmMedium);
+  if (referrer.utmCampaign) params.set('utm_campaign', referrer.utmCampaign);
+  if (referrer.utmContent) params.set('utm_content', referrer.utmContent);
+  if (referrer.utmTerm) params.set('utm_term', referrer.utmTerm);
+  if (referrer.gclid) params.set('gclid', referrer.gclid);
+  if (referrer.fbclid) params.set('fbclid', referrer.fbclid);
+
+  const query = params.toString();
+
+  return query === '' ? null : query;
+}
+
+function baseEvent(
+  session: SessionData,
+  visitId: string,
+  siteConfig: SiteConfig,
+  urlPath: string,
+  pageTitle: string | null,
+  createdAt: Date,
+): EventData {
+  return {
+    id: uuid(),
+    websiteId: session.websiteId,
+    sessionId: session.id,
+    visitId,
+    eventType: EVENT_TYPE.pageView,
+    urlPath,
+    urlQuery: null,
+    pageTitle,
+    hostname: siteConfig.hostname,
+    referrerDomain: null,
+    referrerPath: null,
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    utmContent: null,
+    utmTerm: null,
+    gclid: null,
+    fbclid: null,
+    eventName: null,
+    tag: null,
+    lcp: null,
+    inp: null,
+    cls: null,
+    fcp: null,
+    ttfb: null,
+    createdAt,
+  };
+}
+
+export interface GenerateEventsOptions {
+  /** Drop anything that would be timestamped after this instant. */
+  until?: Date;
+}
+
 export function generateEventsForSession(
   session: SessionData,
   siteConfig: SiteConfig,
   journey: string[],
+  options: GenerateEventsOptions = {},
 ): { events: EventData[]; eventDataEntries: EventDataEntry[] } {
   const events: EventData[] = [];
   const eventDataEntries: EventDataEntry[] = [];
   const visitId = uuid();
+  const until = options.until;
 
   let currentTime = session.createdAt;
   const referrer = getRandomReferrer();
 
   for (let i = 0; i < journey.length; i++) {
+    if (until && currentTime > until) {
+      break;
+    }
+
     const pagePath = journey[i];
     const isFirstPage = i === 0;
-
-    const eventId = uuid();
     const pageTitle = getPageTitle(siteConfig.pages, pagePath);
 
-    events.push({
-      id: eventId,
-      websiteId: session.websiteId,
-      sessionId: session.id,
-      visitId,
-      eventType: EVENT_TYPE.pageView,
-      urlPath: pagePath,
-      urlQuery: null,
-      pageTitle,
-      hostname: siteConfig.hostname,
-      referrerDomain: isFirstPage ? referrer.domain : null,
-      referrerPath: isFirstPage ? referrer.path : null,
-      utmSource: isFirstPage ? referrer.utmSource : null,
-      utmMedium: isFirstPage ? referrer.utmMedium : null,
-      utmCampaign: isFirstPage ? referrer.utmCampaign : null,
-      utmContent: isFirstPage ? referrer.utmContent : null,
-      utmTerm: isFirstPage ? referrer.utmTerm : null,
-      gclid: isFirstPage ? referrer.gclid : null,
-      fbclid: isFirstPage ? referrer.fbclid : null,
-      eventName: null,
-      tag: null,
-      createdAt: currentTime,
-    });
+    const pageView = baseEvent(session, visitId, siteConfig, pagePath, pageTitle, currentTime);
+
+    if (isFirstPage) {
+      pageView.urlQuery = buildUrlQuery(referrer);
+      pageView.referrerDomain = referrer.domain;
+      pageView.referrerPath = referrer.path;
+      pageView.utmSource = referrer.utmSource;
+      pageView.utmMedium = referrer.utmMedium;
+      pageView.utmCampaign = referrer.utmCampaign;
+      pageView.utmContent = referrer.utmContent;
+      pageView.utmTerm = referrer.utmTerm;
+      pageView.gclid = referrer.gclid;
+      pageView.fbclid = referrer.fbclid;
+    }
+
+    events.push(pageView);
+
+    // Web vitals arrive shortly after the page view as their own event.
+    if (Math.random() < PERFORMANCE_SAMPLE_RATE) {
+      const vitalsTime = addSeconds(currentTime, randomInt(1, 4));
+
+      if (!until || vitalsTime <= until) {
+        const vitals = generateWebVitals(session.device, pagePath);
+        const performance = baseEvent(
+          session,
+          visitId,
+          siteConfig,
+          pagePath,
+          pageTitle,
+          vitalsTime,
+        );
+
+        performance.eventType = EVENT_TYPE.performance;
+        performance.lcp = vitals.lcp;
+        performance.inp = vitals.inp;
+        performance.cls = vitals.cls;
+        performance.fcp = vitals.fcp;
+        performance.ttfb = vitals.ttfb;
+
+        events.push(performance);
+      }
+    }
 
     // Check for custom events on this page
     for (const customEvent of siteConfig.customEvents) {
@@ -133,30 +228,15 @@ export function generateEventsForSession(
       if (Math.random() < customEvent.weight) {
         currentTime = addSeconds(currentTime, randomInt(2, 15));
 
-        const customEventId = uuid();
-        events.push({
-          id: customEventId,
-          websiteId: session.websiteId,
-          sessionId: session.id,
-          visitId,
-          eventType: EVENT_TYPE.customEvent,
-          urlPath: pagePath,
-          urlQuery: null,
-          pageTitle,
-          hostname: siteConfig.hostname,
-          referrerDomain: null,
-          referrerPath: null,
-          utmSource: null,
-          utmMedium: null,
-          utmCampaign: null,
-          utmContent: null,
-          utmTerm: null,
-          gclid: null,
-          fbclid: null,
-          eventName: customEvent.name,
-          tag: null,
-          createdAt: currentTime,
-        });
+        if (until && currentTime > until) {
+          break;
+        }
+
+        const custom = baseEvent(session, visitId, siteConfig, pagePath, pageTitle, currentTime);
+        custom.eventType = EVENT_TYPE.customEvent;
+        custom.eventName = customEvent.name;
+
+        events.push(custom);
 
         // Generate event data if configured
         if (customEvent.data) {
@@ -167,7 +247,7 @@ export function generateEventsForSession(
             eventDataEntries.push({
               id: uuid(),
               websiteId: session.websiteId,
-              websiteEventId: customEventId,
+              websiteEventId: custom.id,
               dataKey: key,
               stringValue: isNumber ? null : String(value),
               numberValue: isNumber ? value : null,

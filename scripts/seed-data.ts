@@ -5,51 +5,74 @@
  * Umami Sample Data Generator
  *
  * Generates realistic analytics data for local development and testing.
- * Creates two demo websites:
- *   - Demo Blog: Low traffic (~100 sessions/month)
- *   - Demo SaaS: Average traffic (~500 sessions/day)
+ * Creates three demo websites:
+ *   - Demo Blog:  Low traffic, content-led
+ *   - Demo SaaS:  High traffic, signup funnel and subscription revenue
+ *   - Demo Store: Mid traffic, product/cart/checkout funnel and multi-currency revenue
+ *
+ * Runs are incremental: a site that already exists is topped up from its most recent
+ * event to the present instead of being regenerated, so repeated runs keep the
+ * dashboard current without duplicating anything.
  *
  * Usage:
- *   npm run seed-data              # Generate 30 days of data
- *   npm run seed-data -- --days 90 # Generate 90 days of data
- *   npm run seed-data -- --clear   # Clear existing demo data first
- *   npm run seed-data -- --verbose # Show detailed progress
+ *   npm run seed-data                    # Backfill 400 days, then top up to now
+ *   npm run seed-data -- --days 90       # Backfill 90 days instead
+ *   npm run seed-data -- --clear         # Delete existing demo data first
+ *   npm run seed-data -- --live          # Keep topping up every 60 seconds
+ *   npm run seed-data -- --verbose       # Show detailed progress
  */
 
-import { type SeedConfig, seed } from './seed/index.js';
+import { DEFAULT_BACKFILL_DAYS, type SeedConfig, seed, seedLive } from './seed/index.js';
 
-function parseArgs(): SeedConfig {
+const DEFAULT_LIVE_INTERVAL = 60;
+
+interface CliConfig extends SeedConfig {
+  live: boolean;
+  interval: number;
+}
+
+function parsePositiveInt(value: string, flag: string): number {
+  const parsed = parseInt(value, 10);
+
+  if (Number.isNaN(parsed) || parsed < 1) {
+    console.error(`Error: ${flag} must be a positive integer`);
+    process.exit(1);
+  }
+
+  return parsed;
+}
+
+function parseArgs(): CliConfig {
   const args = process.argv.slice(2);
 
-  const config: SeedConfig = {
-    days: 30,
+  const config: CliConfig = {
+    days: DEFAULT_BACKFILL_DAYS,
     clear: false,
     verbose: false,
+    live: false,
+    interval: DEFAULT_LIVE_INTERVAL,
   };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '--days' && args[i + 1]) {
-      config.days = parseInt(args[i + 1], 10);
-      if (isNaN(config.days) || config.days < 1) {
-        console.error('Error: --days must be a positive integer');
-        process.exit(1);
-      }
-      i++;
+      config.days = parsePositiveInt(args[++i], '--days');
+    } else if (arg.startsWith('--days=')) {
+      config.days = parsePositiveInt(arg.split('=')[1], '--days');
+    } else if (arg === '--interval' && args[i + 1]) {
+      config.interval = parsePositiveInt(args[++i], '--interval');
+    } else if (arg.startsWith('--interval=')) {
+      config.interval = parsePositiveInt(arg.split('=')[1], '--interval');
     } else if (arg === '--clear') {
       config.clear = true;
+    } else if (arg === '--live') {
+      config.live = true;
     } else if (arg === '--verbose' || arg === '-v') {
       config.verbose = true;
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
-    } else if (arg.startsWith('--days=')) {
-      config.days = parseInt(arg.split('=')[1], 10);
-      if (isNaN(config.days) || config.days < 1) {
-        console.error('Error: --days must be a positive integer');
-        process.exit(1);
-      }
     }
   }
 
@@ -66,20 +89,29 @@ Usage:
   npm run seed-data [options]
 
 Options:
-  --days <number>    Number of days of data to generate (default: 30)
-  --clear            Clear existing demo data before generating
-  --verbose, -v      Show detailed progress
-  --help, -h         Show this help message
+  --days <number>      Days of history to backfill a new site (default: ${DEFAULT_BACKFILL_DAYS})
+  --clear              Delete existing demo data before generating
+  --live               Stay running and top up to the present on an interval
+  --interval <secs>    Seconds between live top-ups (default: ${DEFAULT_LIVE_INTERVAL})
+  --verbose, -v        Show detailed progress
+  --help, -h           Show this help message
 
 Examples:
-  npm run seed-data                   # Generate 30 days of data
-  npm run seed-data -- --days 90      # Generate 90 days of data
-  npm run seed-data -- --clear        # Clear existing demo data first
-  npm run seed-data -- --days 7 -v    # Generate 7 days with verbose output
+  npm run seed-data                     # Backfill 400 days, then top up to now
+  npm run seed-data -- --days 90        # Backfill 90 days instead
+  npm run seed-data -- --clear          # Start from scratch
+  npm run seed-data -- --live           # Keep the demo current while the app runs
 
-Generated Sites:
-  - Demo Blog:  Low traffic (~90 sessions/month)
-  - Demo SaaS:  Average traffic (~500 sessions/day) with revenue tracking
+Generated sites:
+  - Demo Blog:  Low traffic, content-led
+  - Demo SaaS:  High traffic, signup funnel and subscription revenue
+  - Demo Store: Mid traffic, checkout funnel and multi-currency revenue
+
+The default backfill covers every range the date picker offers, up to "last 12
+months" and "this year". Existing sites are topped up rather than regenerated.
+
+Stop any running --live seeder before using --clear, or it will start backfilling
+the sites again as soon as it notices they are gone.
 
 Note:
   This script is blocked from running in production environments
@@ -111,7 +143,11 @@ async function main(): Promise<void> {
   const config = parseArgs();
 
   try {
-    await seed(config);
+    if (config.live) {
+      await seedLive(config, config.interval);
+    } else {
+      await seed(config);
+    }
   } catch (error) {
     console.error('\nError generating seed data:', error);
     process.exit(1);
