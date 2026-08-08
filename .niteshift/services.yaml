@@ -2,3 +2,12 @@ services:
   - name: web
     command: pnpm run dev
     port: 3000
+  # Generates the traffic that "happened" since the last tick, so today, the last
+  # 24 hours, and realtime stay current while the sandbox is up — and a long
+  # suspend is filled in on the first tick after it comes back.
+  #
+  # Run directly rather than through `pnpm run`: the pnpm and tsx launchers put the
+  # script in a process the supervisor's stop signal does not reach, which leaves an
+  # orphaned seeder behind on every restart.
+  - name: seed-live
+    command: node --import tsx scripts/seed-data.ts --live

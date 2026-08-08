@@ -164,12 +164,20 @@ export const saasRevenueConfigs: RevenueConfig[] = [
   },
 ];
 
+export const saasSessionProperties: Record<string, string[] | number[]> = {
+  plan: ['free', 'pro', 'enterprise'],
+  role: ['developer', 'marketer', 'founder', 'analyst'],
+  company_size: ['1-10', '11-50', '51-200', '200+'],
+  seats: [1, 3, 5, 10, 25],
+};
+
 export function getSaasSiteConfig(): SiteConfig {
   return {
     hostname: SAAS_WEBSITE_DOMAIN,
     pages: saasPages,
     journeys: saasJourneys,
     customEvents: saasCustomEvents,
+    sessionProperties: saasSessionProperties,
   };
 }
 

@@ -8,25 +8,47 @@ const deviceWeights: WeightedOption<DeviceType>[] = [
   { value: 'tablet', weight: 0.05 },
 ];
 
-const browsersByDevice: Record<DeviceType, WeightedOption<string>[]> = {
-  desktop: [
-    { value: 'Chrome', weight: 0.65 },
-    { value: 'Safari', weight: 0.12 },
+// Browsers are chosen per operating system, not per device class: Samsung Internet
+// does not exist on iOS, and Safari does not exist on Windows.
+const browsersByOs: Record<string, WeightedOption<string>[]> = {
+  'Windows 10': [
+    { value: 'Chrome', weight: 0.66 },
+    { value: 'Edge', weight: 0.18 },
+    { value: 'Firefox', weight: 0.11 },
+    { value: 'Opera', weight: 0.05 },
+  ],
+  'Windows 11': [
+    { value: 'Chrome', weight: 0.62 },
+    { value: 'Edge', weight: 0.24 },
     { value: 'Firefox', weight: 0.1 },
-    { value: 'Edge', weight: 0.1 },
+    { value: 'Opera', weight: 0.04 },
+  ],
+  'Mac OS': [
+    { value: 'Safari', weight: 0.45 },
+    { value: 'Chrome', weight: 0.44 },
+    { value: 'Firefox', weight: 0.07 },
+    { value: 'Edge', weight: 0.04 },
+  ],
+  Linux: [
+    { value: 'Chrome', weight: 0.58 },
+    { value: 'Firefox', weight: 0.34 },
+    { value: 'Edge', weight: 0.05 },
     { value: 'Opera', weight: 0.03 },
   ],
-  mobile: [
-    { value: 'Chrome', weight: 0.55 },
-    { value: 'Safari', weight: 0.35 },
-    { value: 'Samsung', weight: 0.05 },
-    { value: 'Firefox', weight: 0.03 },
+  'Chrome OS': [{ value: 'Chrome', weight: 1 }],
+  iOS: [
+    { value: 'Safari', weight: 0.64 },
+    { value: 'Chrome', weight: 0.28 },
+    { value: 'Firefox', weight: 0.04 },
+    { value: 'Edge', weight: 0.02 },
     { value: 'Opera', weight: 0.02 },
   ],
-  tablet: [
-    { value: 'Safari', weight: 0.6 },
-    { value: 'Chrome', weight: 0.35 },
+  Android: [
+    { value: 'Chrome', weight: 0.71 },
+    { value: 'Samsung', weight: 0.17 },
     { value: 'Firefox', weight: 0.05 },
+    { value: 'Opera', weight: 0.04 },
+    { value: 'Edge', weight: 0.03 },
   ],
 };
 
@@ -72,8 +94,8 @@ export interface DeviceInfo {
 
 export function getRandomDevice(): DeviceInfo {
   const device = weightedRandom(deviceWeights);
-  const browser = weightedRandom(browsersByDevice[device]);
   const os = weightedRandom(osByDevice[device]);
+  const browser = weightedRandom(browsersByOs[os]);
   const screen = pickRandom(screensByDevice[device]);
 
   return { device, browser, os, screen };
