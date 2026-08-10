@@ -5,19 +5,19 @@
  * Umami Sample Data Generator
  *
  * Generates realistic analytics data for local development and testing.
- * Creates three demo websites:
- *   - Demo Blog:  Low traffic, content-led
- *   - Demo SaaS:  High traffic, signup funnel and subscription revenue
- *   - Demo Store: Mid traffic, product/cart/checkout funnel and multi-currency revenue
+ * Creates three websites that read like real properties rather than placeholders:
+ *   - Cedar & Salt:    cedarandsalt.com, low traffic, recipes and newsletter signups
+ *   - Clearloom:       clearloom.com, high traffic, trial funnel and subscription revenue
+ *   - Dayshift Coffee: dayshiftcoffee.com, mid traffic, checkout funnel and multi-currency revenue
  *
  * Runs are incremental: a site that already exists is topped up from its most recent
  * event to the present instead of being regenerated, so repeated runs keep the
  * dashboard current without duplicating anything.
  *
  * Usage:
- *   npm run seed-data                    # Backfill 400 days, then top up to now
- *   npm run seed-data -- --days 90       # Backfill 90 days instead
- *   npm run seed-data -- --clear         # Delete existing demo data first
+ *   npm run seed-data                    # Backfill 30 days, then top up to now
+ *   npm run seed-data -- --days 400      # Backfill a longer window instead
+ *   npm run seed-data -- --clear         # Delete existing seeded sites first
  *   npm run seed-data -- --live          # Keep topping up every 60 seconds
  *   npm run seed-data -- --verbose       # Show detailed progress
  */
@@ -90,25 +90,26 @@ Usage:
 
 Options:
   --days <number>      Days of history to backfill a new site (default: ${DEFAULT_BACKFILL_DAYS})
-  --clear              Delete existing demo data before generating
+  --clear              Delete existing seeded sites before generating
   --live               Stay running and top up to the present on an interval
   --interval <secs>    Seconds between live top-ups (default: ${DEFAULT_LIVE_INTERVAL})
   --verbose, -v        Show detailed progress
   --help, -h           Show this help message
 
 Examples:
-  npm run seed-data                     # Backfill 400 days, then top up to now
-  npm run seed-data -- --days 90        # Backfill 90 days instead
+  npm run seed-data                     # Backfill 30 days, then top up to now
+  npm run seed-data -- --days 400       # Backfill a longer window instead
   npm run seed-data -- --clear          # Start from scratch
   npm run seed-data -- --live           # Keep the demo current while the app runs
 
 Generated sites:
-  - Demo Blog:  Low traffic, content-led
-  - Demo SaaS:  High traffic, signup funnel and subscription revenue
-  - Demo Store: Mid traffic, checkout funnel and multi-currency revenue
+  - Cedar & Salt (cedarandsalt.com):       Low traffic, recipes and newsletter signups
+  - Clearloom (clearloom.com):             High traffic, trial funnel and subscriptions
+  - Dayshift Coffee (dayshiftcoffee.com):  Mid traffic, checkout and multi-currency revenue
 
-The default backfill covers every range the date picker offers, up to "last 12
-months" and "this year". Existing sites are topped up rather than regenerated.
+The default backfill covers the day, week, and month ranges the dashboard opens on;
+raise --days for the 6 and 12 month views. Existing sites are topped up rather than
+regenerated, and a top-up never redoes more than the backfill window.
 
 Stop any running --live seeder before using --clear, or it will start backfilling
 the sites again as soon as it notices they are gone.

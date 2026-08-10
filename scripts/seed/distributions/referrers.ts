@@ -31,27 +31,13 @@ const searchEngines = [
   { domain: 'baidu.com', path: '/s' },
 ];
 
-const socialPlatforms = [
-  { domain: 'twitter.com', path: null },
-  { domain: 'x.com', path: null },
-  { domain: 'linkedin.com', path: '/feed' },
-  { domain: 'facebook.com', path: null },
-  { domain: 'reddit.com', path: '/r/programming' },
-  { domain: 'news.ycombinator.com', path: '/item' },
-  { domain: 'threads.net', path: null },
-  { domain: 'bsky.app', path: null },
-];
+/** A site or platform that sends traffic, as it appears in the referrer header. */
+export interface ReferrerSource {
+  domain: string;
+  path: string | null;
+}
 
-const referralSites = [
-  { domain: 'medium.com', path: '/@author/article' },
-  { domain: 'dev.to', path: '/post' },
-  { domain: 'hashnode.com', path: '/blog' },
-  { domain: 'techcrunch.com', path: '/article' },
-  { domain: 'producthunt.com', path: '/posts' },
-  { domain: 'indiehackers.com', path: '/post' },
-];
-
-interface PaidCampaign {
+export interface PaidCampaign {
   source: string;
   medium: string;
   campaign: string;
@@ -59,19 +45,45 @@ interface PaidCampaign {
   useFbclid?: boolean;
 }
 
-const paidCampaigns: PaidCampaign[] = [
-  { source: 'google', medium: 'cpc', campaign: 'brand_search', useGclid: true },
-  { source: 'google', medium: 'cpc', campaign: 'product_awareness', useGclid: true },
-  { source: 'facebook', medium: 'paid_social', campaign: 'retargeting', useFbclid: true },
-  { source: 'facebook', medium: 'paid_social', campaign: 'lookalike', useFbclid: true },
-  { source: 'linkedin', medium: 'cpc', campaign: 'b2b_targeting' },
-  { source: 'twitter', medium: 'paid_social', campaign: 'launch_promo' },
+export interface EmailCampaign {
+  source: string;
+  medium: string;
+  campaign: string;
+}
+
+/**
+ * Where a site's traffic comes from when it is not search or direct.
+ *
+ * Each site supplies its own mix, so a coffee subscription is not being written up
+ * on Hacker News and a billing API is not trending on Pinterest.
+ */
+export interface ReferrerMix {
+  social?: ReferrerSource[];
+  referral?: ReferrerSource[];
+  paid?: PaidCampaign[];
+  email?: EmailCampaign[];
+}
+
+const DEFAULT_SOCIAL: ReferrerSource[] = [
+  { domain: 'facebook.com', path: null },
+  { domain: 'instagram.com', path: null },
+  { domain: 'x.com', path: null },
+  { domain: 'reddit.com', path: '/r/all' },
 ];
 
-const organicCampaigns = [
-  { source: 'newsletter', medium: 'email', campaign: 'weekly_digest' },
-  { source: 'newsletter', medium: 'email', campaign: 'product_update' },
-  { source: 'partner', medium: 'referral', campaign: 'integration_launch' },
+const DEFAULT_REFERRAL: ReferrerSource[] = [
+  { domain: 'flipboard.com', path: '/topic' },
+  { domain: 'substack.com', path: '/p/roundup' },
+  { domain: 'feedly.com', path: '/i/latest' },
+];
+
+const DEFAULT_PAID: PaidCampaign[] = [
+  { source: 'google', medium: 'cpc', campaign: 'brand_search', useGclid: true },
+  { source: 'facebook', medium: 'paid_social', campaign: 'retargeting', useFbclid: true },
+];
+
+const DEFAULT_EMAIL: EmailCampaign[] = [
+  { source: 'newsletter', medium: 'email', campaign: 'weekly' },
 ];
 
 function generateClickId(): string {
@@ -83,8 +95,12 @@ function generateClickId(): string {
   return result;
 }
 
-export function getRandomReferrer(): ReferrerInfo {
+export function getRandomReferrer(mix: ReferrerMix = {}): ReferrerInfo {
   const type = weightedRandom(referrerTypeWeights);
+  const socialPlatforms = mix.social ?? DEFAULT_SOCIAL;
+  const referralSites = mix.referral ?? DEFAULT_REFERRAL;
+  const paidCampaigns = mix.paid ?? DEFAULT_PAID;
+  const emailCampaigns = mix.email ?? DEFAULT_EMAIL;
 
   const result: ReferrerInfo = {
     type,
@@ -144,13 +160,13 @@ export function getRandomReferrer(): ReferrerInfo {
     }
 
     case 'referral': {
-      // Mix of pure referrals and organic campaigns
+      // Mix of pure referrals and email campaigns
       if (Math.random() < 0.6) {
         const site = pickRandom(referralSites);
         result.domain = site.domain;
         result.path = site.path;
       } else {
-        const campaign = pickRandom(organicCampaigns);
+        const campaign = pickRandom(emailCampaigns);
         result.utmSource = campaign.source;
         result.utmMedium = campaign.medium;
         result.utmCampaign = campaign.campaign;
