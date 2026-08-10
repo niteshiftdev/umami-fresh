@@ -1,0 +1,63 @@
+.container {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    270deg,
+    #ff0000,
+    #ff9a00,
+    #d0de21,
+    #4fdc4a,
+    #3fdad8,
+    #2fc9e2,
+    #1c7fee,
+    #5f15f2,
+    #ba0cf8,
+    #fb07d9,
+    #ff0000
+  );
+  background-size: 1000% 1000%;
+  animation: rainbow-shift 20s ease infinite;
+}
+
+@keyframes rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  padding: 40px 48px;
+  border-radius: 16px;
+  background: var(--surface-raised, #fff);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+}
+
+.title {
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff9a00,
+    #d0de21,
+    #4fdc4a,
+    #3fdad8,
+    #2fc9e2,
+    #1c7fee,
+    #5f15f2,
+    #ba0cf8,
+    #fb07d9
+  );
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rainbow-shift 8s linear infinite;
+  font-weight: 800;
+}
