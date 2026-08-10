@@ -87,12 +87,18 @@ export const blogCustomEvents: CustomEventConfig[] = [
   },
 ];
 
+export const blogSessionProperties: Record<string, string[] | number[]> = {
+  subscriber: ['yes', 'no'],
+  interest: ['analytics', 'privacy', 'performance', 'marketing'],
+};
+
 export function getBlogSiteConfig(): SiteConfig {
   return {
     hostname: BLOG_WEBSITE_DOMAIN,
     pages: blogPages,
     journeys: blogJourneys,
     customEvents: blogCustomEvents,
+    sessionProperties: blogSessionProperties,
   };
 }
 
@@ -105,4 +111,5 @@ export function getBlogJourney(): string[] {
   return weightedRandom(journeyWeights);
 }
 
-export const BLOG_SESSIONS_PER_DAY = 3; // ~90 sessions per month
+// Low traffic, but busy enough that the "today" and "last 24 hours" views are not empty.
+export const BLOG_SESSIONS_PER_DAY = 35;
