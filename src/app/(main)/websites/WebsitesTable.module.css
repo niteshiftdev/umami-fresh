@@ -1,0 +1,24 @@
+.table tbody tr {
+  border-radius: var(--radius-default);
+  transition: background-color 100ms ease;
+}
+
+.table tbody tr:hover {
+  background-color: var(--interactive-bg-hover);
+}
+
+.table tbody td {
+  align-items: center;
+  padding-top: var(--padding-y-default);
+  padding-bottom: var(--padding-y-default);
+}
+
+.domain {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.domain:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
