@@ -47,10 +47,11 @@ import { formatNumber, pickRandom, progressBar, uuid } from './utils.js';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Long enough to fill every range the date picker offers, including "last 12 months"
- * and "this year" from any point in the calendar.
+ * Enough history for the day, week, and month ranges the dashboard opens on, and
+ * short enough that a fresh sandbox finishes seeding in seconds rather than minutes.
+ * Pass `--days` for a longer window when the 6 and 12 month views matter.
  */
-export const DEFAULT_BACKFILL_DAYS = 400;
+export const DEFAULT_BACKFILL_DAYS = 30;
 
 /** Share of visits that come from a browser still holding an earlier session. */
 const REVISIT_RATE = 0.18;
@@ -59,6 +60,9 @@ const REVISIT_RATE = 0.18;
 const SESSION_LIFETIME_DAYS = 2;
 
 const MAX_RECENT_SESSIONS = 2000;
+
+/** Site names earlier versions of this script created; --clear removes these too. */
+const LEGACY_SITE_NAMES = ['Demo Blog', 'Demo SaaS', 'Demo Store'];
 
 export interface SeedConfig {
   days: number;
@@ -573,7 +577,7 @@ async function writeBatch(db: Db, batch: DataBatch): Promise<void> {
 
 /**
  * Fills the gap between `from` and `now` one calendar day at a time, so memory stays
- * flat whether the gap is four hundred days or the ninety seconds since the last tick.
+ * flat whether the gap is a month or the ninety seconds since the last tick.
  */
 async function fillRange(
   db: Db,
@@ -626,7 +630,7 @@ async function fillRange(
 }
 
 /**
- * Brings every demo site up to the present.
+ * Brings every seeded site up to the present.
  *
  * A site that does not exist yet is created and backfilled `days` days. A site that
  * already has data is topped up from its most recent event, which is what keeps the
@@ -696,18 +700,18 @@ async function acquireSeedLock(db: Db): Promise<boolean> {
   return rows[0]?.locked === true;
 }
 
-async function clearDemoData(db: Db): Promise<void> {
-  console.log('Clearing existing demo data...');
+async function clearSeededData(db: Db): Promise<void> {
+  console.log('Clearing existing seeded sites...');
 
   const rows = await db.query<{ website_id: string }>(
     `select website_id from website where name = any($1)`,
-    [SITES.map(site => site.name)],
+    [[...SITES.map(site => site.name), ...LEGACY_SITE_NAMES]],
   );
 
   const websiteIds = rows.map(row => row.website_id);
 
   if (websiteIds.length === 0) {
-    console.log('  No existing demo websites found');
+    console.log('  No existing seeded websites found');
     return;
   }
 
@@ -725,7 +729,7 @@ async function clearDemoData(db: Db): Promise<void> {
 
   await db.query(`delete from website where website_id = any($1)`, [websiteIds]);
 
-  console.log(`  Cleared ${websiteIds.length} demo website(s)`);
+  console.log(`  Cleared ${websiteIds.length} seeded website(s)`);
 }
 
 function printResult(result: SeedResult, elapsedMs: number): void {
@@ -761,7 +765,7 @@ export async function seed(config: SeedConfig): Promise<SeedResult> {
 
   try {
     if (config.clear) {
-      await clearDemoData(db);
+      await clearSeededData(db);
     }
 
     const result = await sync(config, db, new Map());
@@ -775,7 +779,7 @@ export async function seed(config: SeedConfig): Promise<SeedResult> {
 }
 
 /**
- * Keeps the demo current while the app runs: each tick generates the traffic that
+ * Keeps the data current while the app runs: each tick generates the traffic that
  * "happened" since the last one, so realtime and today never go stale, and a long
  * suspend is filled in on the first tick after the sandbox comes back.
  */
@@ -808,7 +812,7 @@ export async function seedLive(config: SeedConfig, intervalSeconds: number): Pro
   console.log(`Live seeding every ${intervalSeconds}s.`);
 
   try {
-    // Only one live seeder may run at a time, or the demo sites get double the traffic.
+    // Only one live seeder may run at a time, or the seeded sites get double the traffic.
     while (!stopped && !(await acquireSeedLock(db))) {
       console.log('Another live seeder holds the seed lock; waiting.');
       await sleep(intervalSeconds * 1000);

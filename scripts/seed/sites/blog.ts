@@ -1,3 +1,4 @@
+import type { ReferrerMix } from '../distributions/referrers.js';
 import type {
   CustomEventConfig,
   JourneyConfig,
@@ -6,90 +7,122 @@ import type {
 } from '../generators/events.js';
 import { type WeightedOption, weightedRandom } from '../utils.js';
 
-export const BLOG_WEBSITE_NAME = 'Demo Blog';
-export const BLOG_WEBSITE_DOMAIN = 'blog.example.com';
+export const BLOG_WEBSITE_NAME = 'Cedar & Salt';
+export const BLOG_WEBSITE_DOMAIN = 'cedarandsalt.com';
 
-const blogPosts = [
-  'getting-started-with-analytics',
-  'privacy-first-tracking',
-  'understanding-your-visitors',
-  'improving-page-performance',
-  'seo-best-practices',
-  'content-marketing-guide',
-  'building-audience-trust',
-  'data-driven-decisions',
+const recipes = [
+  { slug: 'no-knead-focaccia', title: 'No-Knead Focaccia, Start to Finish' },
+  { slug: 'weeknight-white-bean-stew', title: 'The White Bean Stew I Make Every Week' },
+  { slug: 'sheet-pan-chicken-thighs', title: 'Sheet Pan Chicken Thighs with Winter Citrus' },
+  { slug: 'house-vinaigrette', title: 'The Only Vinaigrette You Need' },
+  { slug: 'preserving-summer-tomatoes', title: 'Two Ways to Keep August Tomatoes' },
+  { slug: 'sourdough-discard-crackers', title: 'Sourdough Discard Crackers' },
+  { slug: 'braised-short-ribs', title: 'Sunday Short Ribs, Braised Slow' },
+  { slug: 'oaxaca-market-notes', title: 'Notes from a Week of Market Eating in Oaxaca' },
 ];
 
 export const blogPages: PageConfig[] = [
-  { path: '/', title: 'Demo Blog - Home', weight: 0.25, avgTimeOnPage: 30 },
-  { path: '/blog', title: 'Blog Posts', weight: 0.2, avgTimeOnPage: 45 },
-  { path: '/about', title: 'About Us', weight: 0.1, avgTimeOnPage: 60 },
-  { path: '/contact', title: 'Contact', weight: 0.05, avgTimeOnPage: 45 },
-  ...blogPosts.map(slug => ({
-    path: `/blog/${slug}`,
-    title: slug
-      .split('-')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' '),
+  { path: '/', title: 'Cedar & Salt', weight: 0.25, avgTimeOnPage: 30 },
+  { path: '/recipes', title: 'All Recipes', weight: 0.2, avgTimeOnPage: 45 },
+  { path: '/about', title: 'About', weight: 0.1, avgTimeOnPage: 60 },
+  { path: '/contact', title: 'Say Hello', weight: 0.05, avgTimeOnPage: 45 },
+  ...recipes.map(recipe => ({
+    path: `/recipes/${recipe.slug}`,
+    title: recipe.title,
     weight: 0.05,
     avgTimeOnPage: 180,
   })),
 ];
 
 export const blogJourneys: JourneyConfig[] = [
-  // Direct to blog post (organic search)
-  { pages: ['/blog/getting-started-with-analytics'], weight: 0.15 },
-  { pages: ['/blog/privacy-first-tracking'], weight: 0.12 },
-  { pages: ['/blog/understanding-your-visitors'], weight: 0.1 },
+  // Straight to a recipe from search
+  { pages: ['/recipes/no-knead-focaccia'], weight: 0.15 },
+  { pages: ['/recipes/weeknight-white-bean-stew'], weight: 0.12 },
+  { pages: ['/recipes/sheet-pan-chicken-thighs'], weight: 0.1 },
 
   // Homepage bounces
   { pages: ['/'], weight: 0.15 },
 
-  // Homepage to blog listing
-  { pages: ['/', '/blog'], weight: 0.1 },
+  // Homepage to the recipe index
+  { pages: ['/', '/recipes'], weight: 0.1 },
 
-  // Homepage to blog post
-  { pages: ['/', '/blog', '/blog/seo-best-practices'], weight: 0.08 },
-  { pages: ['/', '/blog', '/blog/content-marketing-guide'], weight: 0.08 },
+  // Homepage to a recipe
+  { pages: ['/', '/recipes', '/recipes/house-vinaigrette'], weight: 0.08 },
+  { pages: ['/', '/recipes', '/recipes/braised-short-ribs'], weight: 0.08 },
 
   // About page visits
   { pages: ['/', '/about'], weight: 0.07 },
   { pages: ['/', '/about', '/contact'], weight: 0.05 },
 
-  // Blog post to another
-  { pages: ['/blog/improving-page-performance', '/blog/data-driven-decisions'], weight: 0.05 },
+  // One recipe to the next
+  { pages: ['/recipes/sourdough-discard-crackers', '/recipes/no-knead-focaccia'], weight: 0.05 },
 
   // Longer sessions
-  { pages: ['/', '/blog', '/blog/building-audience-trust', '/about'], weight: 0.05 },
+  { pages: ['/', '/recipes', '/recipes/preserving-summer-tomatoes', '/about'], weight: 0.05 },
 ];
 
 export const blogCustomEvents: CustomEventConfig[] = [
   {
     name: 'newsletter_signup',
     weight: 0.03,
-    pages: ['/', '/blog'],
+    pages: ['/', '/recipes'],
+  },
+  {
+    name: 'jump_to_recipe',
+    weight: 0.4,
+    pages: recipes.map(recipe => `/recipes/${recipe.slug}`),
+  },
+  {
+    name: 'print_recipe',
+    weight: 0.06,
+    pages: recipes.map(recipe => `/recipes/${recipe.slug}`),
   },
   {
     name: 'share_click',
     weight: 0.05,
-    pages: blogPosts.map(slug => `/blog/${slug}`),
+    pages: recipes.map(recipe => `/recipes/${recipe.slug}`),
     data: {
-      platform: ['twitter', 'linkedin', 'facebook', 'copy_link'],
+      platform: ['pinterest', 'instagram', 'facebook', 'copy_link'],
     },
   },
   {
     name: 'scroll_depth',
     weight: 0.2,
-    pages: blogPosts.map(slug => `/blog/${slug}`),
+    pages: recipes.map(recipe => `/recipes/${recipe.slug}`),
     data: {
       depth: [25, 50, 75, 100],
     },
   },
 ];
 
+// Recipe traffic: saved to boards, passed around in newsletters, and picked up by
+// aggregators rather than arriving from ad networks.
+export const blogReferrers: ReferrerMix = {
+  social: [
+    { domain: 'pinterest.com', path: '/pin' },
+    { domain: 'instagram.com', path: null },
+    { domain: 'facebook.com', path: null },
+    { domain: 'reddit.com', path: '/r/cooking' },
+  ],
+  referral: [
+    { domain: 'flipboard.com', path: '/topic/cooking' },
+    { domain: 'substack.com', path: '/p/what-were-cooking' },
+    { domain: 'feedly.com', path: '/i/latest' },
+    { domain: 'apple.news', path: null },
+  ],
+  paid: [
+    { source: 'pinterest', medium: 'paid_social', campaign: 'holiday_baking' },
+    { source: 'facebook', medium: 'paid_social', campaign: 'newsletter_growth', useFbclid: true },
+  ],
+  email: [
+    { source: 'newsletter', medium: 'email', campaign: 'sunday_letter' },
+    { source: 'newsletter', medium: 'email', campaign: 'holiday_menu' },
+  ],
+};
+
 export const blogSessionProperties: Record<string, string[] | number[]> = {
   subscriber: ['yes', 'no'],
-  interest: ['analytics', 'privacy', 'performance', 'marketing'],
+  interest: ['baking', 'weeknight', 'preserving', 'travel'],
 };
 
 export function getBlogSiteConfig(): SiteConfig {
@@ -98,6 +131,7 @@ export function getBlogSiteConfig(): SiteConfig {
     pages: blogPages,
     journeys: blogJourneys,
     customEvents: blogCustomEvents,
+    referrers: blogReferrers,
     sessionProperties: blogSessionProperties,
   };
 }

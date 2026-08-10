@@ -1,3 +1,4 @@
+import type { ReferrerMix } from '../distributions/referrers.js';
 import type {
   CustomEventConfig,
   JourneyConfig,
@@ -7,33 +8,35 @@ import type {
 import type { RevenueConfig } from '../generators/revenue.js';
 import { type WeightedOption, weightedRandom } from '../utils.js';
 
-export const SAAS_WEBSITE_NAME = 'Demo SaaS';
-export const SAAS_WEBSITE_DOMAIN = 'app.example.com';
+export const SAAS_WEBSITE_NAME = 'Clearloom';
+export const SAAS_WEBSITE_DOMAIN = 'clearloom.com';
 
-const docsSections = [
-  'getting-started',
-  'installation',
-  'configuration',
-  'api-reference',
-  'integrations',
-];
+const docsSections = ['quickstart', 'authentication', 'webhooks', 'api-reference', 'integrations'];
 
-const blogPosts = [
-  'announcing-v2',
-  'customer-success-story',
-  'product-roadmap',
-  'security-best-practices',
+const posts = [
+  { slug: 'ach-payouts-are-live', title: 'ACH payouts are live' },
+  { slug: 'inside-the-new-webhook-pipeline', title: 'Inside the new webhook pipeline' },
+  {
+    slug: 'how-northgate-studio-closes-books-in-a-day',
+    title: 'How Northgate Studio closes its books in a day',
+  },
+  { slug: 'soc-2-type-ii', title: 'We finished our SOC 2 Type II' },
 ];
 
 export const saasPages: PageConfig[] = [
-  { path: '/', title: 'Demo SaaS - Analytics Made Simple', weight: 0.2, avgTimeOnPage: 45 },
+  {
+    path: '/',
+    title: 'Clearloom — Billing built for product teams',
+    weight: 0.2,
+    avgTimeOnPage: 45,
+  },
   { path: '/features', title: 'Features', weight: 0.15, avgTimeOnPage: 90 },
   { path: '/pricing', title: 'Pricing', weight: 0.15, avgTimeOnPage: 120 },
-  { path: '/docs', title: 'Documentation', weight: 0.1, avgTimeOnPage: 60 },
-  { path: '/blog', title: 'Blog', weight: 0.05, avgTimeOnPage: 45 },
-  { path: '/signup', title: 'Sign Up', weight: 0.08, avgTimeOnPage: 90 },
-  { path: '/login', title: 'Login', weight: 0.05, avgTimeOnPage: 30 },
-  { path: '/demo', title: 'Request Demo', weight: 0.05, avgTimeOnPage: 60 },
+  { path: '/docs', title: 'Clearloom Docs', weight: 0.1, avgTimeOnPage: 60 },
+  { path: '/blog', title: 'Changelog & Blog', weight: 0.05, avgTimeOnPage: 45 },
+  { path: '/signup', title: 'Start a free trial', weight: 0.08, avgTimeOnPage: 90 },
+  { path: '/login', title: 'Log in', weight: 0.05, avgTimeOnPage: 30 },
+  { path: '/demo', title: 'Talk to sales', weight: 0.05, avgTimeOnPage: 60 },
   ...docsSections.map(slug => ({
     path: `/docs/${slug}`,
     title: `Docs: ${slug
@@ -43,12 +46,9 @@ export const saasPages: PageConfig[] = [
     weight: 0.02,
     avgTimeOnPage: 180,
   })),
-  ...blogPosts.map(slug => ({
-    path: `/blog/${slug}`,
-    title: slug
-      .split('-')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' '),
+  ...posts.map(post => ({
+    path: `/blog/${post.slug}`,
+    title: post.title,
     weight: 0.02,
     avgTimeOnPage: 150,
   })),
@@ -64,14 +64,14 @@ export const saasJourneys: JourneyConfig[] = [
   { pages: ['/', '/features'], weight: 0.1 },
   { pages: ['/', '/features', '/pricing'], weight: 0.08 },
 
-  // Documentation users
-  { pages: ['/docs', '/docs/getting-started'], weight: 0.08 },
-  { pages: ['/docs/getting-started', '/docs/installation', '/docs/configuration'], weight: 0.06 },
+  // Developers in the docs
+  { pages: ['/docs', '/docs/quickstart'], weight: 0.08 },
+  { pages: ['/docs/quickstart', '/docs/authentication', '/docs/webhooks'], weight: 0.06 },
   { pages: ['/docs/api-reference'], weight: 0.05 },
 
   // Blog readers
-  { pages: ['/blog/announcing-v2'], weight: 0.05 },
-  { pages: ['/blog/customer-success-story'], weight: 0.04 },
+  { pages: ['/blog/ach-payouts-are-live'], weight: 0.05 },
+  { pages: ['/blog/how-northgate-studio-closes-books-in-a-day'], weight: 0.04 },
 
   // Returning users
   { pages: ['/login'], weight: 0.08 },
@@ -80,7 +80,7 @@ export const saasJourneys: JourneyConfig[] = [
   { pages: ['/'], weight: 0.08 },
   { pages: ['/pricing'], weight: 0.05 },
 
-  // Demo requests
+  // Sales conversations
   { pages: ['/', '/demo'], weight: 0.03 },
 ];
 
@@ -90,7 +90,7 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.6,
     pages: ['/signup'],
     data: {
-      plan: ['free', 'pro', 'enterprise'],
+      plan: ['starter', 'growth', 'scale'],
     },
   },
   {
@@ -98,7 +98,7 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.3,
     pages: ['/signup'],
     data: {
-      plan: ['free', 'pro', 'enterprise'],
+      plan: ['starter', 'growth', 'scale'],
       method: ['email', 'google', 'github'],
     },
   },
@@ -107,9 +107,9 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.15,
     pages: ['/signup', '/pricing'],
     data: {
-      plan: ['pro', 'enterprise'],
+      plan: ['starter', 'growth', 'scale'],
       billing: ['monthly', 'annual'],
-      revenue: [29, 49, 99, 299],
+      revenue: [39, 89, 349],
       currency: ['USD'],
     },
   },
@@ -126,7 +126,7 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.3,
     pages: ['/features'],
     data: {
-      feature: ['analytics', 'reports', 'api', 'integrations', 'privacy'],
+      feature: ['invoicing', 'usage_billing', 'payouts', 'dunning', 'revenue_reports'],
     },
   },
   {
@@ -134,7 +134,7 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.15,
     pages: ['/', '/features', '/pricing'],
     data: {
-      button: ['hero_signup', 'nav_signup', 'pricing_cta', 'footer_cta'],
+      button: ['hero_trial', 'nav_trial', 'pricing_cta', 'footer_cta'],
     },
   },
   {
@@ -142,7 +142,7 @@ export const saasCustomEvents: CustomEventConfig[] = [
     weight: 0.2,
     pages: ['/docs', ...docsSections.map(s => `/docs/${s}`)],
     data: {
-      query_type: ['api', 'setup', 'integration', 'troubleshooting'],
+      query_type: ['api', 'setup', 'webhooks', 'troubleshooting'],
     },
   },
 ];
@@ -150,23 +150,59 @@ export const saasCustomEvents: CustomEventConfig[] = [
 export const saasRevenueConfigs: RevenueConfig[] = [
   {
     eventName: 'purchase',
-    minAmount: 29,
-    maxAmount: 29,
+    minAmount: 39,
+    maxAmount: 39,
     currency: 'USD',
-    weight: 0.7, // 70% Pro plan
+    weight: 0.62, // Starter
   },
   {
     eventName: 'purchase',
-    minAmount: 299,
-    maxAmount: 299,
+    minAmount: 89,
+    maxAmount: 89,
     currency: 'USD',
-    weight: 0.3, // 30% Enterprise
+    weight: 0.28, // Growth
+  },
+  {
+    eventName: 'purchase',
+    minAmount: 349,
+    maxAmount: 349,
+    currency: 'USD',
+    weight: 0.1, // Scale
   },
 ];
 
+// A developer-facing product: launch threads, dev communities, and search ads on
+// competitor and category terms.
+export const saasReferrers: ReferrerMix = {
+  social: [
+    { domain: 'x.com', path: null },
+    { domain: 'linkedin.com', path: '/feed' },
+    { domain: 'news.ycombinator.com', path: '/item' },
+    { domain: 'reddit.com', path: '/r/SaaS' },
+    { domain: 'bsky.app', path: null },
+  ],
+  referral: [
+    { domain: 'producthunt.com', path: '/posts/clearloom' },
+    { domain: 'dev.to', path: '/post' },
+    { domain: 'stackoverflow.com', path: '/questions' },
+    { domain: 'github.com', path: '/clearloom/clearloom-node' },
+    { domain: 'indiehackers.com', path: '/post' },
+  ],
+  paid: [
+    { source: 'google', medium: 'cpc', campaign: 'billing_api', useGclid: true },
+    { source: 'google', medium: 'cpc', campaign: 'brand_search', useGclid: true },
+    { source: 'linkedin', medium: 'cpc', campaign: 'finance_ops' },
+  ],
+  email: [
+    { source: 'newsletter', medium: 'email', campaign: 'changelog' },
+    { source: 'lifecycle', medium: 'email', campaign: 'trial_day_7' },
+    { source: 'partner', medium: 'referral', campaign: 'integration_launch' },
+  ],
+};
+
 export const saasSessionProperties: Record<string, string[] | number[]> = {
-  plan: ['free', 'pro', 'enterprise'],
-  role: ['developer', 'marketer', 'founder', 'analyst'],
+  plan: ['starter', 'growth', 'scale'],
+  role: ['developer', 'finance', 'founder', 'operations'],
   company_size: ['1-10', '11-50', '51-200', '200+'],
   seats: [1, 3, 5, 10, 25],
 };
@@ -177,6 +213,7 @@ export function getSaasSiteConfig(): SiteConfig {
     pages: saasPages,
     journeys: saasJourneys,
     customEvents: saasCustomEvents,
+    referrers: saasReferrers,
     sessionProperties: saasSessionProperties,
   };
 }

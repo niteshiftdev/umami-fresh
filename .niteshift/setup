@@ -64,10 +64,9 @@ if [ ! -f geo/GeoLite2-City.mmdb ]; then
 fi
 
 # --- Demo data --------------------------------------------------------------
-# Backfills three demo websites with enough history to fill every range in the
-# date picker, then tops up to the present. Existing sites are topped up rather
-# than regenerated, so this is cheap on a warm sandbox. The seed-live service
-# keeps it current from here.
+# Backfills three demo websites with a month of history, then tops up to the
+# present. Existing sites are topped up rather than regenerated, so this is cheap
+# on a warm sandbox. The seed-live service keeps it current from here.
 pnpm run seed-data
 
 echo "Setup complete. Log in at /login with admin / umami."

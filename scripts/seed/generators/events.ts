@@ -1,4 +1,8 @@
-import { getRandomReferrer, type ReferrerInfo } from '../distributions/referrers.js';
+import {
+  getRandomReferrer,
+  type ReferrerInfo,
+  type ReferrerMix,
+} from '../distributions/referrers.js';
 import { generateWebVitals } from '../distributions/vitals.js';
 import { addSeconds, randomInt, uuid } from '../utils.js';
 import type { SessionData } from './sessions.js';
@@ -77,6 +81,8 @@ export interface SiteConfig {
   pages: PageConfig[];
   journeys: JourneyConfig[];
   customEvents: CustomEventConfig[];
+  /** Where this site's non-search traffic comes from. */
+  referrers?: ReferrerMix;
   /** Session properties written for identified visitors. */
   sessionProperties?: Record<string, string[] | number[]>;
 }
@@ -163,7 +169,7 @@ export function generateEventsForSession(
   const until = options.until;
 
   let currentTime = session.createdAt;
-  const referrer = getRandomReferrer();
+  const referrer = getRandomReferrer(siteConfig.referrers);
 
   for (let i = 0; i < journey.length; i++) {
     if (until && currentTime > until) {
