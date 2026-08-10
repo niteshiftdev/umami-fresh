@@ -14,6 +14,7 @@ import { useMessages, useUpdateQuery } from '@/components/hooks';
 import { Logo } from '@/components/svg';
 import { setClientAuthToken } from '@/lib/client';
 import { setUser } from '@/store/app';
+import styles from './LoginPage.module.css';
 
 export function LoginForm() {
   const { t, labels, getErrorMessage } = useMessages();
@@ -31,11 +32,11 @@ export function LoginForm() {
   };
 
   return (
-    <Column justifyContent="center" alignItems="center" gap="6">
+    <Column justifyContent="center" alignItems="center" gap="6" className={styles.formShell}>
       <Icon size="lg">
         <Logo />
       </Icon>
-      <Heading>umami</Heading>
+      <Heading className={styles.brand}>umami</Heading>
       <Form onSubmit={handleSubmit} error={getErrorMessage(error)} style={{ minWidth: 300 }}>
         <FormField
           label={t(labels.username)}
@@ -58,6 +59,7 @@ export function LoginForm() {
           <FormSubmitButton
             data-test="button-submit"
             variant="primary"
+            className={styles.submit}
             style={{ flex: 1 }}
             isDisabled={false}
           >
