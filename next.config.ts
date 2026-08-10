@@ -235,7 +235,11 @@ export default withNextIntl({
     selfRecord,
   },
   basePath,
-  allowedDevOrigins: ['*.preview.niteshift.local', '*.preview.niteshift.dev'],
+  allowedDevOrigins: [
+    '*.preview.niteshift.local',
+    '*.preview.niteshift.dev',
+    '*.preview.stage.niteshift.dev',
+  ],
   output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
