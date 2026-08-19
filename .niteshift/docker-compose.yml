@@ -6,8 +6,11 @@
 # `web` service in services.yaml, not from the published umami image.
 services:
   db:
-    # Docker bridge networking is unavailable in the sandbox, so the database
-    # runs on the host network and is reached at localhost:5432.
+    # The dev server runs on the host, not in a container, so it needs to reach
+    # the database at localhost:5432. Host networking rather than a published
+    # port because it needs no NAT support from the sandbox runtime; publishing
+    # `ports: ["5432:5432"]` on the default bridge also works here and is the
+    # swap to make if this ever has to coexist with the compose `umami` service.
     network_mode: host
     container_name: umami-postgres
     # Postgres reads SIGTERM as a *smart* shutdown and then waits for the web
