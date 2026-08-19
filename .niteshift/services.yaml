@@ -1,4 +1,26 @@
 services:
+  # PostgreSQL runs as a supervised service so the supervisor owns its lifecycle
+  # (restart on crash, stop on shutdown) instead of a detached `docker run -d`
+  # from setup. autostart is off because setup skips the local database entirely
+  # when an external DATABASE_URL is provided; setup runs
+  # `ns services start postgres` when it actually needs it. Data lives in the
+  # umami-db-data volume, so the container itself is disposable.
+  #
+  # The repository's docker-compose.yml is not reused here: its `db` service
+  # publishes no port, because it expects the app to be a container on the
+  # compose network rather than a dev server on the host.
+  #
+  # The wrapper is load-bearing. postgres:15-alpine declares STOPSIGNAL SIGINT so
+  # that `docker stop` triggers a *fast* shutdown, but `docker run`'s signal proxy
+  # ignores it and forwards the SIGTERM it receives — which Postgres reads as a
+  # *smart* shutdown, waiting for the web app's open connections. A plain
+  # foreground `docker run` therefore hangs for the whole grace period, gets
+  # SIGKILLed, and leaves the container orphaned. Trapping TERM into `docker stop`
+  # hands the signal over the API instead, where STOPSIGNAL applies.
+  - name: postgres
+    command: "bash -c 'docker rm -f umami-postgres >/dev/null 2>&1 || true; docker run --rm --name umami-postgres --network=host -e POSTGRES_DB=umami -e POSTGRES_USER=umami -e POSTGRES_PASSWORD=umami -v umami-db-data:/var/lib/postgresql/data postgres:15-alpine & trap \"docker stop umami-postgres >/dev/null\" TERM INT; wait'"
+    autostart: false
+    stopGracePeriod: 30s
   - name: web
     command: pnpm run dev
     port: 3000
