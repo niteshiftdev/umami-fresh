@@ -5,24 +5,15 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+DB_SERVICE=postgres
 DB_CONTAINER=umami-postgres
-DB_IMAGE=postgres:15-alpine
-DB_VOLUME=umami-db-data
 
 # --- PostgreSQL -------------------------------------------------------------
-# Docker bridge networking is unavailable in the sandbox, so the database runs
-# with host networking and is reached at localhost:5432.
+# The database is declared in .niteshift/services.yaml with autostart: false, so
+# the supervisor owns it but only starts it when we ask. The manifest definition
+# applies even before Niteshift runs `ns services up` after this script.
 if [ -z "${DATABASE_URL:-}" ]; then
-  if docker container inspect "$DB_CONTAINER" >/dev/null 2>&1; then
-    docker start "$DB_CONTAINER" >/dev/null
-  else
-    docker run -d --name "$DB_CONTAINER" --network=host \
-      -e POSTGRES_DB=umami \
-      -e POSTGRES_USER=umami \
-      -e POSTGRES_PASSWORD=umami \
-      -v "$DB_VOLUME:/var/lib/postgresql/data" \
-      "$DB_IMAGE" >/dev/null
-  fi
+  ns services start "$DB_SERVICE"
 
   echo "Waiting for PostgreSQL..."
   for _ in $(seq 1 60); do
