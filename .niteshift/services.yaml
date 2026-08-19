@@ -1,4 +1,16 @@
 services:
+  # Keep the database in the foreground so Niteshift owns its lifecycle. The
+  # named volume preserves data when the container is replaced or restarted.
+  - name: postgres
+    command: docker run --rm --name umami-postgres --network=host -e POSTGRES_DB -e POSTGRES_USER -e POSTGRES_PASSWORD -v umami-db-data:/var/lib/postgresql/data postgres:15-alpine
+    stopGracePeriod: 30s
+    environment:
+      - name: POSTGRES_DB
+        value: umami
+      - name: POSTGRES_USER
+        value: umami
+      - name: POSTGRES_PASSWORD
+        value: umami
   - name: web
     command: pnpm run dev
     port: 3000

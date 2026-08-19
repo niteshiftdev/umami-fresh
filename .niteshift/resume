@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Filesystem-only resume: node_modules and build artifacts survive, but the
-# PostgreSQL container needs restarting. setup is idempotent and skips the
-# expensive steps when their output is already present.
+# PostgreSQL must be ready before the database refresh steps. setup starts its
+# declared service and skips expensive work whose output is already present.
 set -euo pipefail
 
 exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/setup"
