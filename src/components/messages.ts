@@ -419,6 +419,7 @@ export const messages: Record<string, string> = {
   deleteTeamWarning: 'message.delete-team-warning',
   noResultsFound: 'message.no-results-found',
   noWebsitesConfigured: 'message.no-websites-configured',
+  websitesDescription: 'message.websites-description',
   noTeamWebsites: 'message.no-team-websites',
   emptyDashboard: 'message.empty-dashboard',
   selectComponentPreview: 'message.select-component-preview',
